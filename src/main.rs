@@ -1,42 +1,29 @@
-use console::Term;
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select, Sort};
+mod aws;
 
-fn main() {
-    let items = &[
-        "Ice Cream",
-        "Vanilla Cupcake",
-        "Chocolate Muffin",
-        "A Pile of sweet, sweet mustard",
-    ];
+use aws::step_functions::{list_failed_executions, list_machines};
+use aws_sdk_sfn::Error;
+use console::Term;
+use dialoguer::{theme::ColorfulTheme, MultiSelect, Select};
+
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    let machines = list_machines().await?;
     let term = Term::buffered_stderr();
     let theme = ColorfulTheme::default();
 
-    println!("All the following controls are run in a buffered terminal");
-    Confirm::with_theme(&theme)
-        .with_prompt("Do you want to continue?")
+    let selected = Select::with_theme(&theme)
+        .with_prompt("Select the Machine:")
+        .items(&machines)
         .interact_on(&term)
         .unwrap();
 
-    let _: String = Input::with_theme(&theme)
-        .with_prompt("Your name")
-        .interact_on(&term)
-        .unwrap();
-
-    Select::with_theme(&theme)
-        .with_prompt("Pick an item")
-        .items(items)
-        .interact_on(&term)
-        .unwrap();
+    let failed_executions = list_failed_executions(&machines[selected]).await?;
 
     MultiSelect::with_theme(&theme)
-        .with_prompt("Pick some items")
-        .items(items)
+        .with_prompt("Select the executions to retry:")
+        .items(&failed_executions)
         .interact_on(&term)
         .unwrap();
 
-    Sort::with_theme(&theme)
-        .with_prompt("Order these items")
-        .items(items)
-        .interact_on(&term)
-        .unwrap();
+    Ok(())
 }
