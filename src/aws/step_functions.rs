@@ -1,4 +1,4 @@
-use crate::aws::model::{StateMachine, StateMachineExecutions};
+use crate::aws::model::{StateMachine, StateMachineExecution};
 use aws_config::from_env;
 use aws_sdk_sfn::model::ExecutionStatus;
 use aws_sdk_sfn::{Client, Error};
@@ -23,8 +23,8 @@ pub async fn list_machines() -> Result<Vec<StateMachine>, Error> {
 
 //TODO: implement pagination
 pub async fn list_failed_executions(
-    machine: &StateMachine
-) -> Result<Vec<StateMachineExecutions>, Error> {
+    machine: &StateMachine,
+) -> Result<Vec<StateMachineExecution>, Error> {
     let client = build_client().await;
     let req = client
         .list_executions()
@@ -37,15 +37,38 @@ pub async fn list_failed_executions(
         .executions
         .unwrap()
         .into_iter()
-        .map(|execution| StateMachineExecutions {
+        .map(|execution| StateMachineExecution {
             arn: execution.state_machine_arn.unwrap(),
             name: execution.name.unwrap(),
             status: execution.status.unwrap(),
             start_date: execution.start_date.unwrap().fmt(Format::DateTime).unwrap(),
+            input: Option::None,
+            output: Option::None,
         })
-        .collect::<Vec<StateMachineExecutions>>();
+        .collect::<Vec<StateMachineExecution>>();
 
     Ok(executions)
+}
+
+pub async fn describe_execution(execution_arn: String) -> Result<StateMachineExecution, Error> {
+    let client = build_client().await;
+    let req = client.describe_execution().execution_arn(execution_arn);
+
+    let raw_execution = req.send().await?;
+    let execution = StateMachineExecution {
+        arn: raw_execution.state_machine_arn.unwrap(),
+        name: raw_execution.name.unwrap(),
+        status: raw_execution.status.unwrap(),
+        start_date: raw_execution
+            .start_date
+            .unwrap()
+            .fmt(Format::DateTime)
+            .unwrap(),
+        input: raw_execution.input,
+        output: raw_execution.output,
+    };
+
+    Ok(execution)
 }
 
 async fn build_client() -> Client {

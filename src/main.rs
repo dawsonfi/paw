@@ -19,11 +19,13 @@ async fn main() -> Result<(), Error> {
 
     let failed_executions = list_failed_executions(&machines[selected]).await?;
 
-    MultiSelect::with_theme(&theme)
+    let result = MultiSelect::with_theme(&theme)
         .with_prompt("Select the executions to retry:")
         .items(&failed_executions)
         .interact_on(&term)
         .unwrap();
+
+    println!("{:?}", result);
 
     Ok(())
 }
