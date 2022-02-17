@@ -1,5 +1,5 @@
 use aws_sdk_sfn::model::ExecutionStatus;
-use chrono::{DateTime, Utc, SecondsFormat};
+use chrono::{DateTime, SecondsFormat, Utc};
 use std::fmt;
 
 #[derive(Clone)]
@@ -27,7 +27,12 @@ pub struct StateMachineExecution {
 
 impl fmt::Display for StateMachineExecution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} : {}", self.name, self.start_date.to_rfc3339_opts(SecondsFormat::Secs, true))
+        write!(
+            f,
+            "{} : {}",
+            self.name,
+            self.start_date.to_rfc3339_opts(SecondsFormat::Secs, true)
+        )
     }
 }
 
