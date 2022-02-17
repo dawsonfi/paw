@@ -1,6 +1,8 @@
 use aws_sdk_sfn::model::ExecutionStatus;
+use chrono::{DateTime, Utc, SecondsFormat};
 use std::fmt;
 
+#[derive(Clone)]
 pub struct StateMachine {
     pub arn: String,
     pub name: String,
@@ -12,17 +14,25 @@ impl fmt::Display for StateMachine {
     }
 }
 
+#[derive(Clone)]
 pub struct StateMachineExecution {
     pub arn: String,
+    pub machine_arn: String,
     pub name: String,
     pub status: ExecutionStatus, //Change to internal enum
-    pub start_date: String,
+    pub start_date: DateTime<Utc>,
     pub input: Option<String>,
     pub output: Option<String>,
 }
 
 impl fmt::Display for StateMachineExecution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} : {}", self.name, self.start_date)
+        write!(f, "{} : {}", self.name, self.start_date.to_rfc3339_opts(SecondsFormat::Secs, true))
     }
+}
+
+#[derive(Clone)]
+pub struct ExecutionInput {
+    pub machine_arn: String,
+    pub input: String,
 }

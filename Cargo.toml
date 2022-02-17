@@ -11,3 +11,4 @@ aws-config = "0.6.0"
 aws-sdk-sfn = "0.6.0"
 aws-smithy-types = "0.36.0"
 tokio = { version = "1", features = ["full"] }
+chrono = "0.4.19"
