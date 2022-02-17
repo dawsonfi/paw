@@ -6,6 +6,7 @@ use aws_sdk_sfn::Error;
 use chrono::{DateTime, ParseError, Utc};
 use console::Term;
 use dialoguer::{theme::ColorfulTheme, Input, MultiSelect, Select};
+use indicatif::{ProgressBar, ProgressStyle};
 
 pub async fn retry_failed_executions() -> Result<(), Error> {
     let term = Term::buffered_stderr();
@@ -68,17 +69,18 @@ async fn retry_selected_failed_executions(
     selected_executions_to_retry: Vec<usize>,
     failed_executions: Vec<StateMachineExecution>,
 ) -> Result<(), Error> {
-    let mut count = 0;
-    let selected_executions_len = selected_executions_to_retry.len();
-    for index in selected_executions_to_retry.into_iter() {
-        let execution = &failed_executions[index];
-        count = count + 1;
-        println!(
-            "Starting execution: {} ({} of {})",
-            execution.name, count, selected_executions_len
-        );
+    let progress_bar = ProgressBar::new(selected_executions_to_retry.len() as u64);
+    progress_bar.set_style(ProgressStyle::default_bar()
+        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}]({pos} of {len}) ID: {msg}")
+        .progress_chars("#>-"));
 
+    for index in selected_executions_to_retry.into_iter() {
+        let execution = &failed_executions[index];    
         let full_execution = describe_execution(execution.arn.clone()).await?;
+
+        progress_bar.set_message(format!("{}", full_execution.name));
+        progress_bar.inc(1);
+
         start_execution(ExecutionInput {
             machine_arn: full_execution.machine_arn,
             input: full_execution.input.unwrap(),
