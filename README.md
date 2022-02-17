@@ -1,10 +1,19 @@
-# paw
-[![Current Crates.io Version](https://img.shields.io/crates/v/paw.svg)](https://crates.io/crates/paw)
-[![Docs.rs](https://docs.rs/habitica-cli/badge.svg)](https://docs.rs/sfn-paw/)
+# sfn-paw
+[![Current Crates.io Version](https://img.shields.io/crates/v/sfn-paw.svg)](https://crates.io/crates/sfn-paw)
 
 Step Functions CLI Tool
 
+# Install
+
+In order to install this cli, run the following command:
+
+`cargo install sfn-paw`
+
 # Usage
+
+Invoke the cli using the `sfn-paw` command.
+
+## AWS Configuration
 
 paw fetches the aws configuration from the `~/.aws/credentials` file, which should contain the following data:
 
