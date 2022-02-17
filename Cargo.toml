@@ -2,6 +2,11 @@
 name = "paw"
 version = "0.1.0"
 edition = "2021"
+description = "Step Functions CLI Tool"
+license = "MIT"
+license-file = "LICENSE"
+documentation = "https://docs.rs/paw"
+repository = "https://github.com/dawsonfi/paw"
 
 [dependencies]
 dialoguer = "0.9.0"
