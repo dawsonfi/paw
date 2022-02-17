@@ -6,6 +6,14 @@ Step Functions CLI Tool
 
 # Usage
 
+paw fetches the aws configuration from the `~/.aws/credentials` file, which should contain the following data:
+
+* `region`
+* `aws_access_key_id`
+* `aws_secret_access_key`
+
+for instructions see [AWS Configuration and credential file settings](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
+
 ## Retry Failed Executions
 
 1 - Select `Retry Failed Executions Action`
