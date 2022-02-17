@@ -11,12 +11,20 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
     - name: Build
       run: cargo build --verbose
-    - name: Run tests
+    - name: Test
       run: cargo test --verbose
+  release:
+    enviroment: crates
+    runs-on: ubuntu-latest
+    steps:
+    - name: Login
+      run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    - name: publish
+      run: cargo publish
+
+
