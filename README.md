@@ -1,5 +1,6 @@
 # sfn-paw
 [![Current Crates.io Version](https://img.shields.io/crates/v/sfn-paw.svg)](https://crates.io/crates/sfn-paw)
+![Release workflow](https://github.com/dawsonfi/paw/actions/workflows/rust.yml/badge.svg)
 
 Step Functions CLI Tool
 
