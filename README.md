@@ -4,7 +4,7 @@
 
 Step Functions CLI Tool
 
-# Install
+# Installation
 
 In order to install this cli, run the following command:
 
