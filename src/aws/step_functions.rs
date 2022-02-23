@@ -21,7 +21,6 @@ pub async fn list_machines() -> Result<Vec<StateMachine>, Error> {
     Ok(machine_names)
 }
 
-//TODO: implement pagination
 pub async fn list_failed_executions(
     machine: &StateMachine,
     start_date: Option<DateTime<Utc>>,
@@ -42,7 +41,6 @@ pub async fn list_failed_executions(
             arn: execution.execution_arn.unwrap(),
             machine_arn: execution.state_machine_arn.unwrap(),
             name: execution.name.unwrap(),
-            status: execution.status.unwrap(),
             start_date: to_date_time(execution.start_date.unwrap()),
             input: Option::None,
             output: Option::None,
@@ -76,7 +74,6 @@ pub async fn describe_execution(execution_arn: String) -> Result<StateMachineExe
         arn: raw_execution.execution_arn.unwrap(),
         machine_arn: raw_execution.state_machine_arn.unwrap(),
         name: raw_execution.name.unwrap(),
-        status: raw_execution.status.unwrap(),
         start_date: to_date_time(raw_execution.start_date.unwrap()),
         input: raw_execution.input,
         output: raw_execution.output,

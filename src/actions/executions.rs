@@ -75,7 +75,7 @@ async fn retry_selected_failed_executions(
         .progress_chars("#>-"));
 
     for index in selected_executions_to_retry.into_iter() {
-        let execution = &failed_executions[index];    
+        let execution = &failed_executions[index];
         let full_execution = describe_execution(execution.arn.clone()).await?;
 
         progress_bar.set_message(format!("{}", full_execution.name));
