@@ -3,6 +3,8 @@ import * as lambda from 'aws-cdk-lib/aws-lambda'
 import { Bucket } from 'aws-cdk-lib/aws-s3'
 
 export class PawLambda extends Construct {
+    readonly pawLambdaHandler: lambda.Function
+
     constructor(scope: Construct, id: string) {
         super(scope, id)
 
@@ -20,7 +22,7 @@ export class PawLambda extends Construct {
 
         const bucket = new Bucket(this, 'PawLambdaBucket')
 
-        const handler = new lambda.Function(this, 'PawLambdaHandler', {
+        this.pawLambdaHandler = new lambda.Function(this, 'PawLambdaHandler', {
             functionName: 'PawLambda',
             runtime: lambda.Runtime.PYTHON_3_9,
             code: lambda.Code.fromInline(mainFunction),
@@ -30,6 +32,6 @@ export class PawLambda extends Construct {
             },
         })
 
-        bucket.grantReadWrite(handler)
+        bucket.grantReadWrite(this.pawLambdaHandler)
     }
 }
