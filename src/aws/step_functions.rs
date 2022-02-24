@@ -27,40 +27,59 @@ pub async fn list_failed_executions(
     end_date: Option<DateTime<Utc>>,
 ) -> Result<Vec<StateMachineExecution>, Error> {
     let client = build_client().await;
-    let req = client
-        .list_executions()
-        .state_machine_arn(&machine.arn)
-        .max_results(1000)
-        .status_filter(ExecutionStatus::Failed);
-    let raw_executions = req.send().await?;
-    let executions = raw_executions
-        .executions
-        .unwrap()
-        .into_iter()
-        .map(|execution| StateMachineExecution {
-            arn: execution.execution_arn.unwrap(),
-            machine_arn: execution.state_machine_arn.unwrap(),
-            name: execution.name.unwrap(),
-            start_date: to_date_time(execution.start_date.unwrap()),
-            input: Option::None,
-            output: Option::None,
-        })
-        .filter(|execution| {
-            let start = start_date.unwrap_or(Utc::now());
-            let end = end_date.unwrap_or(Utc::now());
-            let execution_time = execution.start_date;
 
-            if start_date.is_some() && end_date.is_some() {
-                return start <= execution_time && end >= execution_time;
-            } else if start_date.is_some() {
-                return start <= execution_time;
-            } else if end_date.is_some() {
-                return end >= execution_time;
-            }
+    let mut executions: Vec<StateMachineExecution> = vec![];
+    let mut next_token: Option<String> = None;
+    loop {
+        let mut req = client
+            .list_executions()
+            .state_machine_arn(&machine.arn)
+            .max_results(1000)
+            .status_filter(ExecutionStatus::Failed);
 
-            true
-        })
-        .collect::<Vec<StateMachineExecution>>();
+        if next_token.is_some() {
+            req = req.next_token(next_token.unwrap());
+        }
+
+        let raw_executions = req.send().await?;
+
+        next_token = raw_executions.next_token;
+
+        let mut partial_executions = raw_executions
+            .executions
+            .unwrap()
+            .into_iter()
+            .map(|execution| StateMachineExecution {
+                arn: execution.execution_arn.unwrap(),
+                machine_arn: execution.state_machine_arn.unwrap(),
+                name: execution.name.unwrap(),
+                start_date: to_date_time(execution.start_date.unwrap()),
+                input: Option::None,
+                output: Option::None,
+            })
+            .filter(|execution| {
+                let start = start_date.unwrap_or(Utc::now());
+                let end = end_date.unwrap_or(Utc::now());
+                let execution_time = execution.start_date;
+
+                if start_date.is_some() && end_date.is_some() {
+                    return start <= execution_time && end >= execution_time;
+                } else if start_date.is_some() {
+                    return start <= execution_time;
+                } else if end_date.is_some() {
+                    return end >= execution_time;
+                }
+
+                true
+            })
+            .collect::<Vec<StateMachineExecution>>();
+
+        executions.append(&mut partial_executions);
+
+        if next_token.is_none() {
+            break;
+        }
+    }
 
     Ok(executions)
 }
