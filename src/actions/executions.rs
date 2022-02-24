@@ -1,7 +1,5 @@
 use crate::aws::model::{ExecutionInput, StateMachineExecution};
-use crate::aws::step_functions::{
-    describe_execution, list_failed_executions, list_machines, start_execution,
-};
+use crate::aws::step_functions::{StepFunctionsMachine, StepMachine};
 use aws_sdk_sfn::Error;
 use chrono::{DateTime, ParseError, Utc};
 use console::Term;
@@ -12,7 +10,9 @@ pub async fn retry_failed_executions() -> Result<(), Error> {
     let term = Term::buffered_stderr();
     let theme = ColorfulTheme::default();
 
-    let machines = list_machines().await?;
+    let machine = StepFunctionsMachine::new().await;
+
+    let machines = machine.list_machines().await?;
     let selected_machine = Select::with_theme(&theme)
         .with_prompt("Select the Machine:")
         .items(&machines)
@@ -23,7 +23,7 @@ pub async fn retry_failed_executions() -> Result<(), Error> {
     let end_date = get_user_date_input("End Date (ex. 1989-09-30 23:15:00 -03:00): ");
 
     let failed_executions =
-        list_failed_executions(&machines[selected_machine], start_date, end_date).await?;
+        machine.list_failed_executions(&machines[selected_machine], start_date, end_date).await?;
     let checked_executions: Vec<(StateMachineExecution, bool)> = failed_executions
         .iter()
         .map(|execution| (execution.clone(), true))
@@ -69,6 +69,8 @@ async fn retry_selected_failed_executions(
     selected_executions_to_retry: Vec<usize>,
     failed_executions: Vec<StateMachineExecution>,
 ) -> Result<(), Error> {
+
+    let machine = StepFunctionsMachine::new().await;
     let progress_bar = ProgressBar::new(selected_executions_to_retry.len() as u64);
     progress_bar.set_style(ProgressStyle::default_bar()
         .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}]({pos} of {len}) ID: {msg}")
@@ -76,12 +78,12 @@ async fn retry_selected_failed_executions(
 
     for index in selected_executions_to_retry.into_iter() {
         let execution = &failed_executions[index];
-        let full_execution = describe_execution(execution.arn.clone()).await?;
+        let full_execution = machine.describe_execution(execution.arn.clone()).await?;
 
         progress_bar.set_message(format!("{}", full_execution.name));
         progress_bar.inc(1);
 
-        start_execution(ExecutionInput {
+        machine.start_execution(ExecutionInput {
             machine_arn: full_execution.machine_arn,
             input: full_execution.input.unwrap(),
         })
