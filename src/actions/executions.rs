@@ -29,12 +29,18 @@ pub async fn retry_failed_executions() -> Result<(), Error> {
         .map(|execution| (execution.clone(), true))
         .collect();
 
-    let selected_executions_to_retry = MultiSelect::with_theme(&theme)
-        .with_prompt("Select the executions to retry:")
-        .items_checked(&checked_executions)
-        .interact_on(&term)
-        .unwrap();
-    retry_selected_failed_executions(selected_executions_to_retry, failed_executions).await
+    // TODO: check empty before going to multiselect
+
+    if !checked_executions.is_empty() {
+        let selected_executions_to_retry = MultiSelect::with_theme(&theme)
+            .with_prompt("Select the executions to retry:")
+            .items_checked(&checked_executions)
+            .interact_on(&term)
+            .unwrap();
+        return retry_selected_failed_executions(selected_executions_to_retry, failed_executions).await
+    }
+
+    Ok(())
 }
 
 fn parse_utc_date_time(raw_date_time: String) -> Result<Option<DateTime<Utc>>, ParseError> {
