@@ -8,12 +8,12 @@ documentation = "https://docs.rs/paw"
 repository = "https://github.com/dawsonfi/paw"
 
 [dependencies]
-dialoguer = "0.9.0"
+dialoguer = "0.10.0"
 indicatif = "0.16.2"
 console = "0.15.0"
-aws-config = "0.6.0"
-aws-sdk-sfn = "0.6.0"
-aws-smithy-types = "0.36.0"
+aws-config = "0.9.0"
+aws-sdk-sfn = "0.9.0"
+aws-smithy-types = "0.39.0"
 tokio = { version = "1", features = ["full"] }
 chrono = "0.4.19"
 async-trait = "0.1.52"
