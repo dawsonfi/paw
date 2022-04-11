@@ -40,7 +40,6 @@ pub struct ExecutionInput {
     pub input: String,
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -55,9 +54,15 @@ mod tests {
             name: "dinosaur".to_string(),
             start_date: now.clone(),
             input: Some("{}".to_string()),
-            output: Some("{}".to_string())
+            output: Some("{}".to_string()),
         };
 
-        assert_eq!(format!("{}", execution), format!("dinosaur : {}", now.to_rfc3339_opts(SecondsFormat::Secs, true)));
+        assert_eq!(
+            format!("{}", execution),
+            format!(
+                "dinosaur : {}",
+                now.to_rfc3339_opts(SecondsFormat::Secs, true)
+            )
+        );
     }
 }
