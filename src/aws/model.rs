@@ -1,7 +1,7 @@
 use chrono::{DateTime, SecondsFormat, Utc};
 use std::fmt;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct StateMachine {
     pub arn: String,
     pub name: String,
@@ -13,7 +13,7 @@ impl fmt::Display for StateMachine {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct StateMachineExecution {
     pub arn: String,
     pub machine_arn: String,
@@ -34,7 +34,7 @@ impl fmt::Display for StateMachineExecution {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ExecutionInput {
     pub machine_arn: String,
     pub input: String,

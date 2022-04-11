@@ -13,13 +13,17 @@ use aws_sdk_sfn::{
 };
 use aws_smithy_http::result::SdkError;
 use chrono::{DateTime, NaiveDateTime, Utc};
+use mockall_double::double;
+#[double]
+use StepFunctionsClient as InternalStepFunctionsClient;
 
 struct StepFunctionsClient {
     pub client: Client,
 }
 
+#[cfg_attr(test, mockall::automock)]
 impl StepFunctionsClient {
-    async fn new() -> StepFunctionsClient {
+    async fn new() -> Self {
         let config = from_env().load().await;
         StepFunctionsClient {
             client: Client::new(&config),
@@ -77,30 +81,21 @@ impl StepFunctionsClient {
 }
 
 pub struct StepFunctionsMachine {
-    client: StepFunctionsClient,
+    client: InternalStepFunctionsClient,
 }
 
 impl StepFunctionsMachine {
     pub async fn new() -> StepFunctionsMachine {
         StepFunctionsMachine {
-            client: StepFunctionsClient::new().await,
+            client: InternalStepFunctionsClient::new().await,
         }
     }
 
-    fn to_date_time(date: aws_smithy_types::DateTime) -> DateTime<Utc> {
-        DateTime::<Utc>::from_utc(
-            NaiveDateTime::from_timestamp(date.secs(), date.subsec_nanos()),
-            Utc,
-        )
-    }
-}
-
-impl StepFunctionsMachine {
     pub async fn list_machines(&self) -> Result<Vec<StateMachine>, Error> {
         let machines = self.client.list_state_machines().await?;
         let machine_names = machines
             .state_machines
-            .unwrap()
+            .unwrap_or_default()
             .into_iter()
             .map(|machine| StateMachine {
                 arn: machine.state_machine_arn.unwrap(),
@@ -192,17 +187,48 @@ impl StepFunctionsMachine {
 
         Ok(())
     }
+
+    fn to_date_time(date: aws_smithy_types::DateTime) -> DateTime<Utc> {
+        DateTime::<Utc>::from_utc(
+            NaiveDateTime::from_timestamp(date.secs(), date.subsec_nanos()),
+            Utc,
+        )
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use aws_sdk_sfn::model::state_machine_list_item::Builder as StateMachineListItemBuilder;
+    use aws_sdk_sfn::output::list_state_machines_output::Builder as ListStateMachinesBuilder;
 
-    // use mockall::mock;
-    // use super::*;
+    #[tokio::test]
+    async fn test_list_state_machines_returns_machines() {
+        let mut result = Some(Ok(ListStateMachinesBuilder::default()
+            .state_machines(
+                StateMachineListItemBuilder::default()
+                    .state_machine_arn("dinosaur_machine::arn")
+                    .name("dinosaur_machine")
+                    .build(),
+            )
+            .build()));
+        let mut mock_client = MockStepFunctionsClient::default();
+        mock_client
+            .expect_list_state_machines()
+            .with()
+            .times(1)
+            .returning(move || result.take().unwrap());
 
-    #[test]
-    fn test() {
-        // let client = MockClient::new();
-        // let machine = StepFunctionsMachine::new_with_client(client);
+        let machine = StepFunctionsMachine {
+            client: mock_client,
+        };
+
+        assert_eq!(
+            machine.list_machines().await.unwrap(),
+            vec![StateMachine {
+                arn: "dinosaur_machine::arn".to_string(),
+                name: "dinosaur_machine".to_string()
+            }]
+        );
     }
 }
