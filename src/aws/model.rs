@@ -39,3 +39,25 @@ pub struct ExecutionInput {
     pub machine_arn: String,
     pub input: String,
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::offset::Utc;
+
+    #[test]
+    fn test_state_machine_execution_print_format() {
+        let now = Utc::now();
+        let execution = StateMachineExecution {
+            arn: "dinosaur::arn".to_string(),
+            machine_arn: "dinosaur_machine:arn".to_string(),
+            name: "dinosaur".to_string(),
+            start_date: now.clone(),
+            input: Some("{}".to_string()),
+            output: Some("{}".to_string())
+        };
+
+        assert_eq!(format!("{}", execution), format!("dinosaur : {}", now.to_rfc3339_opts(SecondsFormat::Secs, true)));
+    }
+}
