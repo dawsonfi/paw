@@ -1,93 +1,97 @@
 use crate::aws::model::{ExecutionInput, StateMachine, StateMachineExecution};
-use aws_config::from_env;
-use aws_sdk_sfn::{
-    error::{
-        DescribeExecutionError, ListExecutionsError, ListStateMachinesError, StartExecutionError,
-    },
-    model::ExecutionStatus,
-    output::{
-        DescribeExecutionOutput, ListExecutionsOutput, ListStateMachinesOutput,
-        StartExecutionOutput,
-    },
-    Client, Error,
-};
-use aws_smithy_http::result::SdkError;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use mockall_double::double;
 #[double]
-use StepFunctionsClient as InternalStepFunctionsClient;
+use external_client::StepFunctionsClient;
+use aws_sdk_sfn::Error;
 
-struct StepFunctionsClient {
-    pub client: Client,
-}
+mod external_client {
+    use aws_config::from_env;
+    use aws_sdk_sfn::{
+        error::{
+            DescribeExecutionError, ListExecutionsError, ListStateMachinesError, StartExecutionError,
+        },
+        model::ExecutionStatus,
+        output::{
+            DescribeExecutionOutput, ListExecutionsOutput, ListStateMachinesOutput,
+            StartExecutionOutput,
+        },
+        Client,
+    };
+    use aws_smithy_http::result::SdkError;
 
-#[cfg_attr(test, mockall::automock)]
-impl StepFunctionsClient {
-    async fn new() -> Self {
-        let config = from_env().load().await;
-        StepFunctionsClient {
-            client: Client::new(&config),
+    pub struct StepFunctionsClient {
+        pub client: Client,
+    }
+
+    #[cfg_attr(test, mockall::automock)]
+    impl StepFunctionsClient {
+        pub async fn new() -> Self {
+            let config = from_env().load().await;
+            StepFunctionsClient {
+                client: Client::new(&config),
+            }
         }
-    }
-
-    async fn list_state_machines(
-        &self,
-    ) -> Result<ListStateMachinesOutput, SdkError<ListStateMachinesError>> {
-        self.client.list_state_machines().send().await
-    }
-
-    async fn list_failed_executions(
-        &self,
-        state_machine_arn: String,
-        next_token: Option<String>,
-    ) -> Result<ListExecutionsOutput, SdkError<ListExecutionsError>> {
-        let mut req = self
-            .client
-            .list_executions()
-            .state_machine_arn(state_machine_arn)
-            .max_results(1000)
-            .status_filter(ExecutionStatus::Failed);
-
-        if next_token.is_some() {
-            req = req.next_token(next_token.unwrap());
+    
+        pub async fn list_state_machines(
+            &self,
+        ) -> Result<ListStateMachinesOutput, SdkError<ListStateMachinesError>> {
+            self.client.list_state_machines().send().await
         }
-
-        req.send().await
-    }
-
-    async fn describe_execution(
-        &self,
-        execution_arn: String,
-    ) -> Result<DescribeExecutionOutput, SdkError<DescribeExecutionError>> {
-        self.client
-            .describe_execution()
-            .execution_arn(execution_arn)
-            .send()
-            .await
-    }
-
-    async fn start_execution(
-        &self,
-        state_machine_arn: String,
-        input: String,
-    ) -> Result<StartExecutionOutput, SdkError<StartExecutionError>> {
-        self.client
-            .start_execution()
-            .state_machine_arn(state_machine_arn)
-            .input(input)
-            .send()
-            .await
+    
+        pub async fn list_failed_executions(
+            &self,
+            state_machine_arn: String,
+            next_token: Option<String>,
+        ) -> Result<ListExecutionsOutput, SdkError<ListExecutionsError>> {
+            let mut req = self
+                .client
+                .list_executions()
+                .state_machine_arn(state_machine_arn)
+                .max_results(1000)
+                .status_filter(ExecutionStatus::Failed);
+    
+            if next_token.is_some() {
+                req = req.next_token(next_token.unwrap());
+            }
+    
+            req.send().await
+        }
+    
+        pub async fn describe_execution(
+            &self,
+            execution_arn: String,
+        ) -> Result<DescribeExecutionOutput, SdkError<DescribeExecutionError>> {
+            self.client
+                .describe_execution()
+                .execution_arn(execution_arn)
+                .send()
+                .await
+        }
+    
+        pub async fn start_execution(
+            &self,
+            state_machine_arn: String,
+            input: String,
+        ) -> Result<StartExecutionOutput, SdkError<StartExecutionError>> {
+            self.client
+                .start_execution()
+                .state_machine_arn(state_machine_arn)
+                .input(input)
+                .send()
+                .await
+        }
     }
 }
 
 pub struct StepFunctionsMachine {
-    client: InternalStepFunctionsClient,
+    client: StepFunctionsClient,
 }
 
 impl StepFunctionsMachine {
     pub async fn new() -> StepFunctionsMachine {
         StepFunctionsMachine {
-            client: InternalStepFunctionsClient::new().await,
+            client: StepFunctionsClient::new().await,
         }
     }
 
@@ -212,7 +216,7 @@ mod tests {
                     .build(),
             )
             .build()));
-        let mut mock_client = MockStepFunctionsClient::default();
+        let mut mock_client = StepFunctionsClient::default();
         mock_client
             .expect_list_state_machines()
             .with()
