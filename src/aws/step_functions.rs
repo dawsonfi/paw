@@ -129,7 +129,7 @@ impl StepFunctionsMachine {
 
             let mut partial_executions = raw_executions
                 .executions
-                .unwrap()
+                .unwrap_or_default()
                 .into_iter()
                 .map(|execution| StateMachineExecution {
                     arn: execution.execution_arn.unwrap(),
@@ -204,10 +204,15 @@ impl StepFunctionsMachine {
 mod tests {
     use super::*;
     use aws_sdk_sfn::model::state_machine_list_item::Builder as StateMachineListItemBuilder;
+    use aws_sdk_sfn::model::execution_list_item::Builder as ExecutionListItemBuilder;
     use aws_sdk_sfn::output::list_state_machines_output::Builder as ListStateMachinesBuilder;
+    use aws_sdk_sfn::output::list_executions_output::Builder as ListExecutionsBuilder;    
+    use aws_smithy_types::DateTime;
+    
+    use mockall::predicate::eq;
 
     #[tokio::test]
-    async fn test_list_state_machines_returns_machines() {
+    async fn should_return_state_machines() {
         let mut result = Some(Ok(ListStateMachinesBuilder::default()
             .state_machines(
                 StateMachineListItemBuilder::default()
@@ -234,5 +239,90 @@ mod tests {
                 name: "dinosaur_machine".to_string()
             }]
         );
+    }
+
+    #[tokio::test]
+    async fn should_return_empty_state_machines() {
+        let mut result = Some(Ok(ListStateMachinesBuilder::default()
+            .set_state_machines(None)
+            .build()));
+        let mut mock_client = StepFunctionsClient::default();
+        mock_client
+            .expect_list_state_machines()
+            .with()
+            .times(1)
+            .returning(move || result.take().unwrap());
+
+        let machine = StepFunctionsMachine {
+            client: mock_client,
+        };
+
+        assert_eq!(
+            machine.list_machines().await.unwrap(),
+            vec![]
+        );
+    }
+
+    #[tokio::test]
+    async fn should_return_failed_executions_inside_date_range() {
+        let utc_now = DateTime::from_secs(Utc::now().timestamp());
+        let mut result = Some(Ok(ListExecutionsBuilder::default()
+            .executions(ExecutionListItemBuilder::default()
+                .execution_arn("dinosaur::arn::exec")
+                .state_machine_arn("dinosaur::arn")
+                .name("Execution")
+                .start_date(utc_now)
+                .build())
+            .build()));
+        let mut mock_client = StepFunctionsClient::default();
+        mock_client
+            .expect_list_failed_executions()
+            .with(eq("dinosaur::arn".to_string()), eq(None))
+            .times(1)
+            .returning(move |_state_machine_arn, _next_token| result.take().unwrap());
+
+        let machine = StepFunctionsMachine {
+            client: mock_client,
+        };
+
+        let state_machine = StateMachine {
+            arn: "dinosaur::arn".to_string(),
+            name: "dinosaur".to_string()
+        };
+        let failed_executions = machine.list_failed_executions(&state_machine, None, None).await.unwrap();
+
+        assert_eq!(failed_executions, vec![StateMachineExecution { 
+            arn: "dinosaur::arn::exec".to_string(),
+            machine_arn: "dinosaur::arn".to_string(),
+            name: "Execution".to_string(),
+            start_date: StepFunctionsMachine::to_date_time(utc_now),
+            input: None,
+            output: None
+         }])
+    }
+
+    #[tokio::test]
+    async fn should_return_empty_failed_executions() {
+        let mut result = Some(Ok(ListExecutionsBuilder::default()
+            .set_executions(None)
+            .build()));
+        let mut mock_client = StepFunctionsClient::default();
+        mock_client
+            .expect_list_failed_executions()
+            .with(eq("dinosaur::arn".to_string()), eq(None))
+            .times(1)
+            .returning(move |_state_machine_arn, _next_token| result.take().unwrap());
+
+        let machine = StepFunctionsMachine {
+            client: mock_client,
+        };
+
+        let state_machine = StateMachine {
+            arn: "dinosaur::arn".to_string(),
+            name: "dinosaur".to_string()
+        };
+        let failed_executions = machine.list_failed_executions(&state_machine, None, None).await.unwrap();
+
+        assert_eq!(failed_executions, vec![])
     }
 }

@@ -65,4 +65,14 @@ mod tests {
             )
         );
     }
+
+    #[test]
+    fn test_state_machine_print_format() {    
+        let machine = StateMachine {
+            arn: "dinosaur::arn".to_string(),            
+            name: "dinosaur".to_string(),            
+        };
+
+        assert_eq!(format!("{}", machine), "dinosaur");
+    }
 }
