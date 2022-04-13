@@ -206,8 +206,10 @@ mod tests {
     use super::*;
     use aws_sdk_sfn::model::state_machine_list_item::Builder as StateMachineListItemBuilder;
     use aws_sdk_sfn::model::execution_list_item::Builder as ExecutionListItemBuilder;
+    use aws_sdk_sfn::output::describe_execution_output::Builder as DescribeExecutionBuilder;
     use aws_sdk_sfn::output::list_state_machines_output::Builder as ListStateMachinesBuilder;
-    use aws_sdk_sfn::output::list_executions_output::Builder as ListExecutionsBuilder;    
+    use aws_sdk_sfn::output::list_executions_output::Builder as ListExecutionsBuilder;
+    use aws_sdk_sfn::output::start_execution_output::Builder as StartExecutioBuilder;
     use aws_smithy_types::DateTime;
     
     use mockall::predicate::eq;
@@ -325,5 +327,65 @@ mod tests {
         let failed_executions = machine.list_failed_executions(&state_machine, None, None).await.unwrap();
 
         assert_eq!(failed_executions, vec![])
+    }
+
+    #[tokio::test]
+    async fn should_return_execution() {
+        let utc = DateTime::from_secs(Utc::now().timestamp());
+        let mut result = Some(Ok(DescribeExecutionBuilder::default()
+            .execution_arn("dinosaur::arn")
+            .state_machine_arn("dinousar::machine")
+            .name("dinosaur")
+            .start_date(utc)
+            .input("{'batata': 'frita'}")
+            .output("{'body': 'delicia'}")
+            .build()));
+
+        let mut mock_client = StepFunctionsClient::default();
+        mock_client
+            .expect_describe_execution()
+            .with(eq("dinousar::arn".to_string()))
+            .times(1)
+            .returning(move |_machine_arn| result.take().unwrap());
+
+        let machine = StepFunctionsMachine {
+            client: mock_client,
+        };
+
+        let execution = machine.describe_execution("dinousar::arn".to_string()).await.unwrap();
+
+        assert_eq!(execution, StateMachineExecution {
+            arn: "dinosaur::arn".to_string(),
+            machine_arn: "dinousar::machine".to_string(),
+            name: "dinosaur".to_string(),
+            start_date: StepFunctionsMachine::to_date_time(utc),
+            input: Some("{'batata': 'frita'}".to_string()),
+            output: Some("{'body': 'delicia'}".to_string())
+        })
+    }
+
+    #[tokio::test]
+    async fn should_start_execution() {
+        let mut result = Some(Ok(StartExecutioBuilder::default()
+            .execution_arn("dinousar::arn",)
+            .start_date(DateTime::from_secs(Utc::now().timestamp()))
+            .build()));
+        let mut mock_client = StepFunctionsClient::default();
+        mock_client
+            .expect_start_execution()
+            .with(
+                eq("dinosaur::arn".to_string()),
+                eq("{'batata': 'frita'}".to_string()),
+            ).times(1)
+            .returning(move |_machine_arn, _input| result.take().unwrap());
+
+        let machine = StepFunctionsMachine {
+            client: mock_client,
+        };
+
+        machine.start_execution(ExecutionInput {
+            machine_arn: "dinosaur::arn".to_string(),
+            input: "{'batata': 'frita'}".to_string(),
+        }).await.unwrap();
     }
 }
