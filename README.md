@@ -1,8 +1,16 @@
-# sfn-paw
-[![Current Crates.io Version](https://img.shields.io/crates/v/sfn-paw.svg)](https://crates.io/crates/sfn-paw)
-![Release workflow](https://github.com/dawsonfi/paw/actions/workflows/rust.yml/badge.svg)
+<p align="center">
+    <img align="left" src="https://raw.githubusercontent.com/dawsonfi/paw/main/dev/resources/logo.png" height="100px" alt="Cat Paw">
+</p>
+
+# PAW
 
 Step Functions CLI Tool
+
+<br />
+
+
+[![Current Crates.io Version](https://img.shields.io/crates/v/sfn-paw.svg)](https://crates.io/crates/sfn-paw)
+![Release workflow](https://github.com/dawsonfi/paw/actions/workflows/rust.yml/badge.svg)
 
 # Installation
 
