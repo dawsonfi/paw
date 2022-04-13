@@ -5,6 +5,7 @@ use mockall_double::double;
 use external_client::StepFunctionsClient;
 use aws_sdk_sfn::Error;
 
+#[allow(dead_code)]
 mod external_client {
     use aws_config::from_env;
     use aws_sdk_sfn::{
