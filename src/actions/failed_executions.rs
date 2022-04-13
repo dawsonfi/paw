@@ -131,3 +131,15 @@ impl StepFunctionsAction for RetryFailedExecution {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_return_name() {
+        let retry_failed_executions = RetryFailedExecution::new();
+
+        assert_eq!(retry_failed_executions.name(), "Retry Failed Executions".to_string());
+    }
+}
