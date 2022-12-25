@@ -1,16 +1,17 @@
 use crate::aws::model::{ExecutionInput, StateMachine, StateMachineExecution};
+use aws_sdk_sfn::Error;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use mockall_double::double;
 #[double]
 use external_client::StepFunctionsClient;
-use aws_sdk_sfn::Error;
+use mockall_double::double;
 
 #[allow(dead_code)]
 mod external_client {
     use aws_config::from_env;
     use aws_sdk_sfn::{
         error::{
-            DescribeExecutionError, ListExecutionsError, ListStateMachinesError, StartExecutionError,
+            DescribeExecutionError, ListExecutionsError, ListStateMachinesError,
+            StartExecutionError,
         },
         model::ExecutionStatus,
         output::{
@@ -33,13 +34,13 @@ mod external_client {
                 client: Client::new(&config),
             }
         }
-    
+
         pub async fn list_state_machines(
             &self,
         ) -> Result<ListStateMachinesOutput, SdkError<ListStateMachinesError>> {
             self.client.list_state_machines().send().await
         }
-    
+
         pub async fn list_failed_executions(
             &self,
             state_machine_arn: String,
@@ -51,14 +52,14 @@ mod external_client {
                 .state_machine_arn(state_machine_arn)
                 .max_results(1000)
                 .status_filter(ExecutionStatus::Failed);
-    
+
             if next_token.is_some() {
                 req = req.next_token(next_token.unwrap());
             }
-    
+
             req.send().await
         }
-    
+
         pub async fn describe_execution(
             &self,
             execution_arn: String,
@@ -69,7 +70,7 @@ mod external_client {
                 .send()
                 .await
         }
-    
+
         pub async fn start_execution(
             &self,
             state_machine_arn: String,
@@ -195,7 +196,7 @@ impl StepFunctionsMachine {
 
     fn to_date_time(date: aws_smithy_types::DateTime) -> DateTime<Utc> {
         DateTime::<Utc>::from_utc(
-            NaiveDateTime::from_timestamp(date.secs(), date.subsec_nanos()),
+            NaiveDateTime::from_timestamp_opt(date.secs(), date.subsec_nanos()).unwrap(),
             Utc,
         )
     }
@@ -204,14 +205,14 @@ impl StepFunctionsMachine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aws_sdk_sfn::model::state_machine_list_item::Builder as StateMachineListItemBuilder;
     use aws_sdk_sfn::model::execution_list_item::Builder as ExecutionListItemBuilder;
+    use aws_sdk_sfn::model::state_machine_list_item::Builder as StateMachineListItemBuilder;
     use aws_sdk_sfn::output::describe_execution_output::Builder as DescribeExecutionBuilder;
-    use aws_sdk_sfn::output::list_state_machines_output::Builder as ListStateMachinesBuilder;
     use aws_sdk_sfn::output::list_executions_output::Builder as ListExecutionsBuilder;
+    use aws_sdk_sfn::output::list_state_machines_output::Builder as ListStateMachinesBuilder;
     use aws_sdk_sfn::output::start_execution_output::Builder as StartExecutioBuilder;
     use aws_smithy_types::DateTime;
-    
+
     use mockall::predicate::eq;
 
     #[tokio::test]
@@ -260,22 +261,21 @@ mod tests {
             client: mock_client,
         };
 
-        assert_eq!(
-            machine.list_machines().await.unwrap(),
-            vec![]
-        );
+        assert_eq!(machine.list_machines().await.unwrap(), vec![]);
     }
 
     #[tokio::test]
     async fn should_return_failed_executions_inside_date_range() {
         let utc_now = DateTime::from_secs(Utc::now().timestamp());
         let mut result = Some(Ok(ListExecutionsBuilder::default()
-            .executions(ExecutionListItemBuilder::default()
-                .execution_arn("dinosaur::arn::exec")
-                .state_machine_arn("dinosaur::arn")
-                .name("Execution")
-                .start_date(utc_now)
-                .build())
+            .executions(
+                ExecutionListItemBuilder::default()
+                    .execution_arn("dinosaur::arn::exec")
+                    .state_machine_arn("dinosaur::arn")
+                    .name("Execution")
+                    .start_date(utc_now)
+                    .build(),
+            )
             .build()));
         let mut mock_client = StepFunctionsClient::default();
         mock_client
@@ -290,18 +290,24 @@ mod tests {
 
         let state_machine = StateMachine {
             arn: "dinosaur::arn".to_string(),
-            name: "dinosaur".to_string()
+            name: "dinosaur".to_string(),
         };
-        let failed_executions = machine.list_failed_executions(&state_machine, None, None).await.unwrap();
+        let failed_executions = machine
+            .list_failed_executions(&state_machine, None, None)
+            .await
+            .unwrap();
 
-        assert_eq!(failed_executions, vec![StateMachineExecution { 
-            arn: "dinosaur::arn::exec".to_string(),
-            machine_arn: "dinosaur::arn".to_string(),
-            name: "Execution".to_string(),
-            start_date: StepFunctionsMachine::to_date_time(utc_now),
-            input: None,
-            output: None
-         }])
+        assert_eq!(
+            failed_executions,
+            vec![StateMachineExecution {
+                arn: "dinosaur::arn::exec".to_string(),
+                machine_arn: "dinosaur::arn".to_string(),
+                name: "Execution".to_string(),
+                start_date: StepFunctionsMachine::to_date_time(utc_now),
+                input: None,
+                output: None
+            }]
+        )
     }
 
     #[tokio::test]
@@ -322,9 +328,12 @@ mod tests {
 
         let state_machine = StateMachine {
             arn: "dinosaur::arn".to_string(),
-            name: "dinosaur".to_string()
+            name: "dinosaur".to_string(),
         };
-        let failed_executions = machine.list_failed_executions(&state_machine, None, None).await.unwrap();
+        let failed_executions = machine
+            .list_failed_executions(&state_machine, None, None)
+            .await
+            .unwrap();
 
         assert_eq!(failed_executions, vec![])
     }
@@ -352,22 +361,28 @@ mod tests {
             client: mock_client,
         };
 
-        let execution = machine.describe_execution("dinousar::arn".to_string()).await.unwrap();
+        let execution = machine
+            .describe_execution("dinousar::arn".to_string())
+            .await
+            .unwrap();
 
-        assert_eq!(execution, StateMachineExecution {
-            arn: "dinosaur::arn".to_string(),
-            machine_arn: "dinousar::machine".to_string(),
-            name: "dinosaur".to_string(),
-            start_date: StepFunctionsMachine::to_date_time(utc),
-            input: Some("{'batata': 'frita'}".to_string()),
-            output: Some("{'body': 'delicia'}".to_string())
-        })
+        assert_eq!(
+            execution,
+            StateMachineExecution {
+                arn: "dinosaur::arn".to_string(),
+                machine_arn: "dinousar::machine".to_string(),
+                name: "dinosaur".to_string(),
+                start_date: StepFunctionsMachine::to_date_time(utc),
+                input: Some("{'batata': 'frita'}".to_string()),
+                output: Some("{'body': 'delicia'}".to_string())
+            }
+        )
     }
 
     #[tokio::test]
     async fn should_start_execution() {
         let mut result = Some(Ok(StartExecutioBuilder::default()
-            .execution_arn("dinousar::arn",)
+            .execution_arn("dinousar::arn")
             .start_date(DateTime::from_secs(Utc::now().timestamp()))
             .build()));
         let mut mock_client = StepFunctionsClient::default();
@@ -376,16 +391,20 @@ mod tests {
             .with(
                 eq("dinosaur::arn".to_string()),
                 eq("{'batata': 'frita'}".to_string()),
-            ).times(1)
+            )
+            .times(1)
             .returning(move |_machine_arn, _input| result.take().unwrap());
 
         let machine = StepFunctionsMachine {
             client: mock_client,
         };
 
-        machine.start_execution(ExecutionInput {
-            machine_arn: "dinosaur::arn".to_string(),
-            input: "{'batata': 'frita'}".to_string(),
-        }).await.unwrap();
+        machine
+            .start_execution(ExecutionInput {
+                machine_arn: "dinosaur::arn".to_string(),
+                input: "{'batata': 'frita'}".to_string(),
+            })
+            .await
+            .unwrap();
     }
 }
