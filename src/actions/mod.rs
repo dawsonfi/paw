@@ -1,7 +1,7 @@
 use crate::actions::failed_executions::RetryFailedExecution;
 use async_trait::async_trait;
 use aws_sdk_sfn::Error;
-use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::fmt::Display;
 
 pub mod failed_executions;
 
@@ -12,10 +12,6 @@ pub trait StepFunctionsAction: Display {
     fn name(&self) -> String {
         "Invalid Action".to_string()
     }
-
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "{}", self.name())
-    }
 }
 
 pub fn get_actions() -> Vec<Box<dyn StepFunctionsAction>> {
@@ -24,6 +20,7 @@ pub fn get_actions() -> Vec<Box<dyn StepFunctionsAction>> {
 
 #[cfg(test)]
 mod tests {
+    use std::{fmt, fmt::Formatter};
     use super::*;
 
     struct TestAction {}
@@ -36,7 +33,7 @@ mod tests {
     }
 
     impl Display for TestAction {
-        fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
             write!(f, "Test: {}", self.name())
         }
     }

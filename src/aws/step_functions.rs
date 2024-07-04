@@ -1,6 +1,6 @@
 use crate::aws::model::{ExecutionInput, StateMachine, StateMachineExecution};
 use aws_sdk_sfn::Error;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 #[double]
 use external_client::StepFunctionsClient;
 use mockall_double::double;
@@ -137,7 +137,9 @@ impl StepFunctionsMachine {
                     arn: execution.execution_arn.unwrap(),
                     machine_arn: execution.state_machine_arn.unwrap(),
                     name: execution.name.unwrap(),
-                    start_date: StepFunctionsMachine::to_date_time(execution.start_date.unwrap()),
+                    start_date: StepFunctionsMachine::convert_date_time(
+                        execution.start_date.unwrap(),
+                    ),
                     input: Option::None,
                     output: Option::None,
                 })
@@ -178,7 +180,7 @@ impl StepFunctionsMachine {
             arn: raw_execution.execution_arn.unwrap(),
             machine_arn: raw_execution.state_machine_arn.unwrap(),
             name: raw_execution.name.unwrap(),
-            start_date: StepFunctionsMachine::to_date_time(raw_execution.start_date.unwrap()),
+            start_date: StepFunctionsMachine::convert_date_time(raw_execution.start_date.unwrap()),
             input: raw_execution.input,
             output: raw_execution.output,
         };
@@ -194,10 +196,11 @@ impl StepFunctionsMachine {
         Ok(())
     }
 
-    fn to_date_time(date: aws_smithy_types::DateTime) -> DateTime<Utc> {
-        DateTime::<Utc>::from_utc(
-            NaiveDateTime::from_timestamp_opt(date.secs(), date.subsec_nanos()).unwrap(),
-            Utc,
+    fn convert_date_time(date: aws_smithy_types::DateTime) -> DateTime<Utc> {
+        Utc.from_utc_datetime(
+            &DateTime::from_timestamp(date.secs(), date.subsec_nanos())
+                .unwrap()
+                .naive_utc(),
         )
     }
 }
@@ -303,7 +306,7 @@ mod tests {
                 arn: "dinosaur::arn::exec".to_string(),
                 machine_arn: "dinosaur::arn".to_string(),
                 name: "Execution".to_string(),
-                start_date: StepFunctionsMachine::to_date_time(utc_now),
+                start_date: StepFunctionsMachine::convert_date_time(utc_now),
                 input: None,
                 output: None
             }]
@@ -372,7 +375,7 @@ mod tests {
                 arn: "dinosaur::arn".to_string(),
                 machine_arn: "dinousar::machine".to_string(),
                 name: "dinosaur".to_string(),
-                start_date: StepFunctionsMachine::to_date_time(utc),
+                start_date: StepFunctionsMachine::convert_date_time(utc),
                 input: Some("{'batata': 'frita'}".to_string()),
                 output: Some("{'body': 'delicia'}".to_string())
             }
